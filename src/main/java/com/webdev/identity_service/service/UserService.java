@@ -1,10 +1,13 @@
 package com.webdev.identity_service.service;
 
 import com.webdev.identity_service.dto.request.UserCreationRequest;
+import com.webdev.identity_service.dto.request.UserUpdateRequest;
 import com.webdev.identity_service.entity.User;
 import com.webdev.identity_service.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 //Tóm tắt mô hình chuẩn:(bảo mật v kiểm soát)
 //  1. **Frontend** gửi JSON (`username`, `password`).
@@ -18,8 +21,11 @@ public class UserService {
     private UserRepository userRepository;
 
     //method tạo user, (Map) từ **DTO** sang **Entity** (`User`)
-    public User createResquest(UserCreationRequest request){
+    public User createUser(UserCreationRequest request){
         User user = new User();
+
+        if(userRepository.existsByUsername(request.getUsername()))
+            throw new RuntimeException("User existed");
 
         //get từ request vào bảng user
         user.setUsername(request.getUsername());
@@ -30,5 +36,31 @@ public class UserService {
 
         return userRepository.save(user); //tạo 1 row trong bảng user ở database
     }
+
+    public User updateUser(String userId, UserUpdateRequest request){
+        User user = getUser(userId);
+
+        //get từ request vào bảng user
+        user.setPassword(request.getPassword());
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setDob(request.getDob());
+
+        return userRepository.save(user); //tạo 1 row trong bảng user ở database
+    }
+
+    public void deleteUser(String userId) {
+        userRepository.deleteById(userId);
+    }
+
+    public List<User> getUsers() {
+        return userRepository.findAll(); //tat ca user
+    }
+
+    public User getUser(String id) {
+        return userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+
 
 }
