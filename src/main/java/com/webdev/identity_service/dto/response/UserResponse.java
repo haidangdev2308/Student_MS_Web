@@ -1,20 +1,20 @@
-package com.webdev.identity_service.dto.request;
+package com.webdev.identity_service.dto.response;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
 
-//(Data Transfer Object)
 @Data //tu dong tao getter setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder //giúp bạn tạo ra một đối tượng (Object) dễ hiểu
 @FieldDefaults(level = AccessLevel.PRIVATE) // mặc đinh field là private
-public class UserUpdateRequest {
-    //id tự tạo khi insert 1 dòng vào table
-     String password;
-     String firstName;
-     String lastName;
-     LocalDate dob;
+public class UserResponse { // dto response từ service trả về controller
+    String id;
+    String username;
+    String password;
+    String firstName;
+    String lastName;
+    LocalDate dob;
 }

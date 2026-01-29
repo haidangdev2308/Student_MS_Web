@@ -3,19 +3,23 @@ package com.webdev.identity_service.controller;
 import com.webdev.identity_service.dto.request.ApiResponse;
 import com.webdev.identity_service.dto.request.UserCreationRequest;
 import com.webdev.identity_service.dto.request.UserUpdateRequest;
+import com.webdev.identity_service.dto.response.UserResponse;
 import com.webdev.identity_service.entity.User;
 import com.webdev.identity_service.service.UserService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/users")
+@RequiredArgsConstructor //tự dộng bing với dependency vào contructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserController {
-    @Autowired //tuong tac voi service
-    private UserService userService;
+    UserService userService;
 
     @PostMapping //endpoint users
     ApiResponse<User> createUser(@RequestBody @Valid UserCreationRequest request){ // map req body vao object dto, co valid
@@ -25,7 +29,7 @@ public class UserController {
     }
 
     @PutMapping("/{userId}") //dau ngoac de khai bao bien tren path
-    User updateUser(@RequestBody UserUpdateRequest request, @PathVariable("userId") String userId) {
+    UserResponse updateUser(@RequestBody UserUpdateRequest request, @PathVariable("userId") String userId) {
         return userService.updateUser(userId, request);
     }
 
@@ -41,7 +45,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}") //dau nguoc de khai bao bien tren path
-    User getUser(@PathVariable("userId") String userId) {
+    UserResponse getUser(@PathVariable("userId") String userId) {
             return userService.getUser(userId);
     }
 }
