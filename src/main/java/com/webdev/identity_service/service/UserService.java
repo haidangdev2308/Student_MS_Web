@@ -3,6 +3,8 @@ package com.webdev.identity_service.service;
 import com.webdev.identity_service.dto.request.UserCreationRequest;
 import com.webdev.identity_service.dto.request.UserUpdateRequest;
 import com.webdev.identity_service.entity.User;
+import com.webdev.identity_service.exception.AppException;
+import com.webdev.identity_service.exception.ErrorCode;
 import com.webdev.identity_service.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,7 +27,7 @@ public class UserService {
         User user = new User();
 
         if(userRepository.existsByUsername(request.getUsername()))
-            throw new RuntimeException("User existed");
+            throw new AppException(ErrorCode.USER_EXISTED);
 
         //get từ request vào bảng user
         user.setUsername(request.getUsername());

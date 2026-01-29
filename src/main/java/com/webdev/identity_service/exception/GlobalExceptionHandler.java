@@ -1,5 +1,6 @@
 package com.webdev.identity_service.exception;
 
+import com.webdev.identity_service.dto.request.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -7,13 +8,43 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 @ControllerAdvice //gom cac exception ve 1 cho
 public class GlobalExceptionHandler {
-    @ExceptionHandler(value = RuntimeException.class) //bat exception runtime
-    ResponseEntity<String> handlingRuntimeException(RuntimeException exception) {
-        return ResponseEntity.badRequest().body(exception.getMessage()); // tra ve bad request
+    //Truong hop error khong xac dinh duoc
+    @ExceptionHandler(value = Exception.class) //bat exception runtime
+    ResponseEntity<ApiResponse> handlingRuntimeException(RuntimeException exception) {
+        ApiResponse apiResponse = new ApiResponse();
+
+        apiResponse.setCode(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode());
+        apiResponse.setMessage(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage());
+
+        return ResponseEntity.badRequest().body(apiResponse); // tra ve bad request
+    }
+
+    // Truong hop error trong pham vi xac dinh duoc
+    @ExceptionHandler(value = AppException.class) //bat exception có sẵn error code
+    ResponseEntity<ApiResponse> handlingAppException(AppException exception) {
+        ErrorCode errorCode = exception.getErrorCode();//lấy được kiểu enum error từ AppException
+        ApiResponse apiResponse = new ApiResponse();
+
+        apiResponse.setCode(errorCode.getCode());
+        apiResponse.setMessage(errorCode.getMessage());
+
+        return ResponseEntity.badRequest().body(apiResponse); // tra ve bad request
     }
 
     @ExceptionHandler(value = MethodArgumentNotValidException.class) //bat valid exception
-    ResponseEntity<String> handlingValidException(MethodArgumentNotValidException exception) {
-        return ResponseEntity.badRequest().body(exception.getFieldError().getDefaultMessage()); // tra ve bad request
+    ResponseEntity<ApiResponse> handlingValidException(MethodArgumentNotValidException exception) {
+        String enumKey = exception.getFieldError().getDefaultMessage();
+
+        ErrorCode errorCode = ErrorCode.INVALID_KEY;
+
+        try {
+            errorCode = ErrorCode.valueOf(enumKey); //neu key dung
+        } catch (IllegalArgumentException e) { // key sai thi la INVALID_KEY
+        }
+        ApiResponse apiResponse = new ApiResponse();
+
+        apiResponse.setCode(errorCode.getCode());
+        apiResponse.setMessage(errorCode.getMessage());
+        return ResponseEntity.badRequest().body(apiResponse); // tra ve bad request
     }
 }

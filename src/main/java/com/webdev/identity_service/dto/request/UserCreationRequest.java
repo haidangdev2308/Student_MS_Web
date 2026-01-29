@@ -7,10 +7,10 @@ import java.time.LocalDate;
 //(Data Transfer Object)
 public class UserCreationRequest {
     //id tự tạo khi insert 1 dòng vào table
-    @Size(min = 3, message = "username must be at least 3 characters")
+    @Size(min = 3, message = "USERNAME_INVALID") //enum lỗi
     private String username;
 
-    @Size(min = 8, message = "password must be at least 8 characters")
+    @Size(min = 8, message = "INVALID_PASSWORD")
     private String password;
     private String firstName;
     private String lastName;
