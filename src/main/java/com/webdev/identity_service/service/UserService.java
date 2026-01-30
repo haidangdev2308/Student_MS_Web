@@ -12,6 +12,8 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -36,6 +38,9 @@ public class UserService {
 
         //get từ request vào bảng user bằng mapper
         User user = userMapper.toUser(request);
+
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10); //ma hoa bcript
+        user.setPassword(passwordEncoder.encode(request.getPassword()));//encode pw user nhap
 
         return userRepository.save(user); //tạo 1 row trong bảng user ở database
     }
