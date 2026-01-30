@@ -8,7 +8,6 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @Builder //giúp bạn tạo ra một đối tượng (Object) dễ hiểu
 @FieldDefaults(level = AccessLevel.PRIVATE) // mặc đinh field là private
-public class AuthenticationResponse {
-    String token;
-    boolean authenticated;
+public class IntrospectResponse {//tra ve valid token
+    boolean valid;
 }

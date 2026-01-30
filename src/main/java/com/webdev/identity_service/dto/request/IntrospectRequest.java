@@ -1,4 +1,4 @@
-package com.webdev.identity_service.dto.response;
+package com.webdev.identity_service.dto.request;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -8,7 +8,6 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @Builder //giúp bạn tạo ra một đối tượng (Object) dễ hiểu
 @FieldDefaults(level = AccessLevel.PRIVATE) // mặc đinh field là private
-public class AuthenticationResponse {
+public class IntrospectRequest {
     String token;
-    boolean authenticated;
 }
