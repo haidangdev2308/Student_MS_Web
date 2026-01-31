@@ -12,8 +12,10 @@ import com.webdev.identity_service.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +31,7 @@ import java.util.List;
 @Service //layer phụ trách xử lý logic
 @RequiredArgsConstructor //tự dộng bing với dependency vào contructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Slf4j
 public class UserService {
      UserRepository userRepository;
      UserMapper userMapper;
@@ -59,6 +62,16 @@ public class UserService {
         return userMapper.toUserResponse(userRepository.save(user));
     }
 
+    public UserResponse getMyInfo(){
+        var context = SecurityContextHolder.getContext();//lưu trữ thông tin user đăng nhâp thành công
+        String name = context.getAuthentication().getName();
+
+        User user = userRepository.findByUsername(name).orElseThrow(
+                () -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        return userMapper.toUserResponse(user);
+    }
+
     public void deleteUser(String userId) {
         // Nên kiểm tra xem user có tồn tại không trước khi xóa
         if (!userRepository.existsById(userId)) {
@@ -68,18 +81,19 @@ public class UserService {
     }
 
     // Lấy danh sách
+    @PreAuthorize("hasRole('ADMIN')") // phân quyền theo method, nếu có role admin mới vào được hàm này
     public List<UserResponse> getUsers() {
-        // Cách 1: Nếu Mapper của bạn đã có hàm map List -> Giữ nguyên code của bạn
-        // return userMapper.toUserResponseList(userRepository.findAll());
-
-        // Cách 2: (An toàn nhất) Dùng Stream để map từng phần tử
+        log.info("In method get Users");
+        // Dùng Stream để map từng phần tử
         return userRepository.findAll().stream()
                 .map(userMapper::toUserResponse)
                 .toList();
     }
 
     // Lấy 1 user
+    @PostAuthorize("returnObject.username == authentication.name")// method thực hiện xong mới xét authorize, ko đúng thì không trả lại
     public UserResponse getUser(String id) {
+        log.info("In method get user by Id");
         return userMapper.toUserResponse(
                 userRepository.findById(id)
                         .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED))

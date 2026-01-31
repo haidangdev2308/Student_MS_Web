@@ -36,6 +36,13 @@ public class UserController {
                 .build();
     }
 
+    @GetMapping("/myInfo")//thông tin bản thân
+    ApiResponse<UserResponse> getMyInfo(){
+        return ApiResponse.<UserResponse>builder()
+                .result(userService.getMyInfo())
+                .build();
+    }
+
     @DeleteMapping("/{userId}") //xóa dòng user
     ApiResponse<String> deleteUser(@PathVariable("userId") String userId) {
         userService.deleteUser(userId);

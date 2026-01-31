@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -23,6 +24,7 @@ import javax.crypto.spec.SecretKeySpec;
 //Cấu hình spring security
 @Configuration //tự đông bật spring security
 @EnableWebSecurity
+@EnableMethodSecurity//phân quyen theo method
 public class SecurityConfig {
 
     private final String[] PUBLIC_ENDPOINTS =
@@ -35,11 +37,12 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity.authorizeHttpRequests(request ->
                 request.requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()//endpoint này co the truy cập mà ko can security jwt
-                        .requestMatchers(HttpMethod.GET, "/users").hasAuthority(Role.ADMIN.name())//endpoint này admin mới gọi được
+//                        .requestMatchers(HttpMethod.GET, "/users").hasAuthority(Role.ADMIN.name())//endpoint này admin mới gọi được
                         .anyRequest().authenticated());//còn lại phải authen
 
         httpSecurity.oauth2ResourceServer(oauth2 ->
-                oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder())
+                oauth2.jwt(jwtConfigurer ->
+                        jwtConfigurer.decoder(jwtDecoder())
                         .jwtAuthenticationConverter(jwtAuthenticationConverter()))//để cấu hình cho việc đọc jwt của request thì cần jwt decoder
                 );
 
