@@ -24,7 +24,7 @@ import java.text.ParseException;
 public class AuthenticationController {
     AuthenticationService authenticationService;
 
-    @PostMapping("/token")
+    @PostMapping("/token")//log-in
     ApiResponse<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request) {
         var result = authenticationService.authenticate(request);
         return ApiResponse.<AuthenticationResponse>builder()
@@ -32,7 +32,7 @@ public class AuthenticationController {
                 .build();//build ra response bang builder
     }
 
-    @PostMapping("/introspect")
+    @PostMapping("/introspect")//verify token
     ApiResponse<IntrospectResponse> introspect(@RequestBody IntrospectRequest request)
             throws ParseException, JOSEException {
         var result = authenticationService.introspect(request);

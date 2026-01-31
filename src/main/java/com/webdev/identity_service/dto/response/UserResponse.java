@@ -4,6 +4,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
+import java.util.Set;
 
 @Data //tu dong tao getter setter
 @NoArgsConstructor
@@ -13,8 +14,8 @@ import java.time.LocalDate;
 public class UserResponse { // dto response từ service trả về controller
     String id;
     String username;
-    String password;
     String firstName;
     String lastName;
     LocalDate dob;
+    Set<String> roles;//Set đảm bảo mỗi pt là unit, khác List
 }

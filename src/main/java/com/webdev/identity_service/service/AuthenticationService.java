@@ -9,6 +9,7 @@ import com.webdev.identity_service.dto.request.AuthenticationRequest;
 import com.webdev.identity_service.dto.request.IntrospectRequest;
 import com.webdev.identity_service.dto.response.AuthenticationResponse;
 import com.webdev.identity_service.dto.response.IntrospectResponse;
+import com.webdev.identity_service.entity.User;
 import com.webdev.identity_service.exception.AppException;
 import com.webdev.identity_service.exception.ErrorCode;
 import com.webdev.identity_service.repository.UserRepository;
@@ -21,11 +22,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.StringJoiner;
 
 @Slf4j
 @Service //layer phụ trách xử lý logic
@@ -48,7 +51,7 @@ public class AuthenticationService {
 
         Date expireTime = signedJWT.getJWTClaimsSet().getExpirationTime();
 
-        var verified = signedJWT.verify(jwsVerifier);//trả về bool kiem tra verify
+        var verified = signedJWT.verify(jwsVerifier);//dung chu ky jwt de verify, trả về bool kiem tra verify
 
         return IntrospectResponse.builder()
                 .valid(verified && expireTime.after(new Date()))
@@ -65,7 +68,7 @@ public class AuthenticationService {
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
 
-        var token = generateToken(request.getUsername());
+        var token = generateToken(user);
 
         return AuthenticationResponse.builder()
                 .token(token)
@@ -73,11 +76,11 @@ public class AuthenticationService {
                 .build();
     }
 
-    private String generateToken(String username) { // tao JWT
+    private String generateToken(User user) { // tao JWT
         JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);//header
 
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()//build payload
-                .subject(username)
+                .subject(user.getUsername())
                 .issuer("studentMSWeb.com")
                 .issueTime(new Date())//luc tao
                 .expirationTime(
@@ -85,7 +88,7 @@ public class AuthenticationService {
                                 Instant.now().plus(1, ChronoUnit.HOURS).toEpochMilli() //exp 1 gio
                         )
                 )
-                .claim("customClaim","123")
+                .claim("scope",buildScope(user))
                 .build();
 
         Payload payload = new Payload(jwtClaimsSet.toJSONObject()); //payload nhan json obj
@@ -99,5 +102,13 @@ public class AuthenticationService {
             log.error("Can not create token");
             throw new RuntimeException(e);
         }
+    }
+
+    private String buildScope(User user) {// tao claim scope khi dang nhap
+        StringJoiner stringJoiner = new StringJoiner(" ");
+        if(!CollectionUtils.isEmpty(user.getRoles())) { // role khong empty thi thuc hien
+            user.getRoles().forEach(stringJoiner::add);
+        }
+        return stringJoiner.toString();
     }
 }
