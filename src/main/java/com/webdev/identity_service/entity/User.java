@@ -1,9 +1,6 @@
 package com.webdev.identity_service.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -27,5 +24,7 @@ public class User
     String firstName;
     String lastName;
     LocalDate dob;
-    Set<String> roles;//Set đảm bảo mỗi pt là unit, khác List
+
+    @ManyToMany //qqh nhiều nhiều với role
+    Set<Role> roles;//Set đảm bảo mỗi pt là unit, khác List
 }

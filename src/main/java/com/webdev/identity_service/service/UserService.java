@@ -46,9 +46,9 @@ public class UserService {
         User user = userMapper.toUser(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));//encode pw user nhap
 
-        HashSet<String> roles = new HashSet<>();
-        roles.add(Role.USER.name()); // khi tao user moi se co them 1 list role, mac dinh co role USER
-        user.setRoles(roles);
+//        HashSet<String> roles = new HashSet<>();
+//        roles.add(Role.USER.name()); // khi tao user moi se co them 1 list role, mac dinh co role USER
+//        user.setRoles(roles);
 
         return userMapper.toUserResponse(userRepository.save(user)); //tạo 1 row trong bảng user ở database
     }

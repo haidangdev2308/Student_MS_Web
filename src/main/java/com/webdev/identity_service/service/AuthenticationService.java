@@ -106,9 +106,9 @@ public class AuthenticationService {
 
     private String buildScope(User user) {// tao claim scope khi dang nhap
         StringJoiner stringJoiner = new StringJoiner(" ");
-        if(!CollectionUtils.isEmpty(user.getRoles())) { // role khong empty thi thuc hien
-            user.getRoles().forEach(stringJoiner::add);
-        }
+//        if(!CollectionUtils.isEmpty(user.getRoles())) { // role khong empty thi thuc hien
+//            user.getRoles().forEach(stringJoiner::add);
+//        }
         return stringJoiner.toString();
     }
 }
