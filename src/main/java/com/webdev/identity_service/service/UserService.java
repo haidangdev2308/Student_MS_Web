@@ -8,6 +8,7 @@ import com.webdev.identity_service.enums.Role;
 import com.webdev.identity_service.exception.AppException;
 import com.webdev.identity_service.exception.ErrorCode;
 import com.webdev.identity_service.mapper.UserMapper;
+import com.webdev.identity_service.repository.RoleRepository;
 import com.webdev.identity_service.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class UserService {
      UserRepository userRepository;
      UserMapper userMapper;
      PasswordEncoder passwordEncoder;
+     RoleRepository roleRepository;
 
     //method tạo user, (Map) từ **DTO** sang **Entity** (`User`)
     public UserResponse createUser(UserCreationRequest request){
@@ -46,8 +48,8 @@ public class UserService {
         User user = userMapper.toUser(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));//encode pw user nhap
 
-//        HashSet<String> roles = new HashSet<>();
-//        roles.add(Role.USER.name()); // khi tao user moi se co them 1 list role, mac dinh co role USER
+        HashSet<String> roles = new HashSet<>();
+        roles.add(Role.USER.name()); // khi tao user moi se co them 1 list role, mac dinh co role USER
 //        user.setRoles(roles);
 
         return userMapper.toUserResponse(userRepository.save(user)); //tạo 1 row trong bảng user ở database
@@ -58,6 +60,10 @@ public class UserService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         // Map dữ liệu từ request vào entity user cũ
         userMapper.updateUser(user, request);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+
+        var roles = roleRepository.findAllById(request.getRoles());//thêm role khi update
+        user.setRoles(new HashSet<>(roles));
         // Lưu và trả về response
         return userMapper.toUserResponse(userRepository.save(user));
     }
@@ -81,7 +87,8 @@ public class UserService {
     }
 
     // Lấy danh sách
-    @PreAuthorize("hasRole('ADMIN')") // phân quyền theo method, nếu có role admin mới vào được hàm này
+    @PreAuthorize("hasRole('ADMIN')") // phân quyền theo method, nếu có ROLE_ADMIN mới vào được hàm này
+//    @PreAuthorize("hasAuthority('ADMIN')") // phân quyền theo method, nếu có ADMIN mới vào được hàm này
     public List<UserResponse> getUsers() {
         log.info("In method get Users");
         // Dùng Stream để map từng phần tử

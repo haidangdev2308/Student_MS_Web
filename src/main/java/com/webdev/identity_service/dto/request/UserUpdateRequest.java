@@ -4,6 +4,7 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
+import java.util.List;
 
 //(Data Transfer Object)
 @Data //tu dong tao getter setter
@@ -17,4 +18,5 @@ public class UserUpdateRequest {
      String firstName;
      String lastName;
      LocalDate dob;
+     List<String> roles;
 }

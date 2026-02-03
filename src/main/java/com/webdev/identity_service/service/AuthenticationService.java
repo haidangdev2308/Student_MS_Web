@@ -109,6 +109,14 @@ public class AuthenticationService {
 //        if(!CollectionUtils.isEmpty(user.getRoles())) { // role khong empty thi thuc hien
 //            user.getRoles().forEach(stringJoiner::add);
 //        }
+
+        if (!CollectionUtils.isEmpty(user.getRoles()))// role khong empty thi thuc hien
+            user.getRoles().forEach(role -> {
+                stringJoiner.add("ROLE_" + role.getName()); // thành ROLE_ADMIN
+                if (!CollectionUtils.isEmpty(role.getPermissions()))//role có permission thi thuc hien
+                    role.getPermissions() // add permission vao scope
+                            .forEach(permission -> stringJoiner.add(permission.getName()));
+            });
         return stringJoiner.toString();
     }
 }
