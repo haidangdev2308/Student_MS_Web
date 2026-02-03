@@ -1,9 +1,7 @@
 package com.webdev.identity_service.controller;
 
 import com.nimbusds.jose.JOSEException;
-import com.webdev.identity_service.dto.request.ApiResponse;
-import com.webdev.identity_service.dto.request.AuthenticationRequest;
-import com.webdev.identity_service.dto.request.IntrospectRequest;
+import com.webdev.identity_service.dto.request.*;
 import com.webdev.identity_service.dto.response.AuthenticationResponse;
 import com.webdev.identity_service.dto.response.IntrospectResponse;
 import com.webdev.identity_service.service.AuthenticationService;
@@ -39,5 +37,22 @@ public class AuthenticationController {
         return ApiResponse.<IntrospectResponse>builder()
                 .result(result)
                 .build();//build ra response bang builder
+    }
+
+    @PostMapping("/logout")
+    ApiResponse<Void> logout(@RequestBody LogoutRequest request)
+            throws ParseException, JOSEException {
+        authenticationService.logout(request);
+        return ApiResponse.<Void>builder()
+                .build();
+    }
+
+    @PostMapping("/refresh")
+    ApiResponse<AuthenticationResponse> authenticate(@RequestBody RefreshRequest request)
+            throws ParseException, JOSEException {
+        var result = authenticationService.refreshToken(request);
+        return ApiResponse.<AuthenticationResponse>builder()
+                .result(result)
+                .build();
     }
 }

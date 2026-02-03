@@ -1,6 +1,7 @@
 package com.webdev.identity_service.configuration;
 
 import com.webdev.identity_service.enums.Role;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,10 +29,10 @@ import javax.crypto.spec.SecretKeySpec;
 public class SecurityConfig {
 
     private final String[] PUBLIC_ENDPOINTS =
-            {"/users","/auth/token", "/auth/introspect"};
+            {"/users","/auth/token", "/auth/introspect", "/auth/logout", "/auth/refresh"};
 
-    @Value("${jwt.signerKey}") // đọc từ file config yaml
-    private String signerKey;
+    @Autowired
+    private CustomJwtDecoder customJwtDecoder;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
@@ -42,7 +43,7 @@ public class SecurityConfig {
 
         httpSecurity.oauth2ResourceServer(oauth2 ->
                 oauth2.jwt(jwtConfigurer ->
-                        jwtConfigurer.decoder(jwtDecoder())
+                        jwtConfigurer.decoder(customJwtDecoder)
                         .jwtAuthenticationConverter(jwtAuthenticationConverter()))//để cấu hình cho việc đọc jwt của request thì cần jwt decoder
                         .authenticationEntryPoint(new JwtAuthenticationEntryPoint())//điểm authenticate fail thì đều hướng user đi đâu hoặc trả ra error msg
         );
@@ -59,15 +60,6 @@ public class SecurityConfig {
         jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
         return jwtAuthenticationConverter;
     }
-
-    @Bean
-    JwtDecoder jwtDecoder() { // láy secret key để decoder jwt
-        SecretKeySpec secretKeySpec = new SecretKeySpec(signerKey.getBytes(), "HS512");
-        return NimbusJwtDecoder
-                .withSecretKey(secretKeySpec)
-                .macAlgorithm(MacAlgorithm.HS512)
-                .build();
-    };
 
     @Bean //đưa vao bean thi bien nay se duoc dua vao application context de goi o nhung noi khac
     PasswordEncoder passwordEncoder() {

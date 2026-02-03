@@ -7,11 +7,15 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.webdev.identity_service.dto.request.AuthenticationRequest;
 import com.webdev.identity_service.dto.request.IntrospectRequest;
+import com.webdev.identity_service.dto.request.LogoutRequest;
+import com.webdev.identity_service.dto.request.RefreshRequest;
 import com.webdev.identity_service.dto.response.AuthenticationResponse;
 import com.webdev.identity_service.dto.response.IntrospectResponse;
+import com.webdev.identity_service.entity.InvalidatedToken;
 import com.webdev.identity_service.entity.User;
 import com.webdev.identity_service.exception.AppException;
 import com.webdev.identity_service.exception.ErrorCode;
+import com.webdev.identity_service.repository.InvalidatedTokenRepository;
 import com.webdev.identity_service.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +33,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.StringJoiner;
+import java.util.UUID;
 
 @Slf4j
 @Service //layer phụ trách xử lý logic
@@ -36,6 +41,7 @@ import java.util.StringJoiner;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthenticationService {
     UserRepository userRepository;
+    InvalidatedTokenRepository invalidatedTokenRepository;
 
     @NonFinal
     @Value("${jwt.signerKey}") // đọc từ file config yaml
@@ -44,6 +50,7 @@ public class AuthenticationService {
     //verify jwt
     public IntrospectResponse introspect(IntrospectRequest request) throws JOSEException, ParseException {
         var token = request.getToken();
+        boolean isValid = true;
 
         JWSVerifier jwsVerifier = new MACVerifier(SIGNER_KEY.getBytes());
 
@@ -53,8 +60,14 @@ public class AuthenticationService {
 
         var verified = signedJWT.verify(jwsVerifier);//dung chu ky jwt de verify, trả về bool kiem tra verify
 
+        try {
+            verifyToken(token);
+        } catch (AppException e) {
+            isValid = false;
+        }
+
         return IntrospectResponse.builder()
-                .valid(verified && expireTime.after(new Date()))
+                .valid(isValid)
                 .build();
     }
 
@@ -76,6 +89,51 @@ public class AuthenticationService {
                 .build();
     }
 
+    public void logout(LogoutRequest request)
+            throws ParseException, JOSEException {//request la 1 token
+        var signToken = verifyToken(request.getToken());
+
+        String jit = signToken.getJWTClaimsSet().getJWTID();
+        Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
+
+        InvalidatedToken invalidatedToken = InvalidatedToken.builder()
+                .id(jit)
+                .expiryTime(expiryTime)
+                .build();
+
+        invalidatedTokenRepository.save(invalidatedToken);
+    }
+
+    public AuthenticationResponse refreshToken(RefreshRequest request)
+            throws ParseException, JOSEException {
+        var signedJWT = verifyToken(request.getToken());
+
+        //verify ok thì cấp token mới
+        var jit = signedJWT.getJWTClaimsSet().getJWTID();
+        var expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+        //invalidate token cũ
+        InvalidatedToken invalidatedToken = InvalidatedToken.builder()
+                .id(jit)
+                .expiryTime(expiryTime)
+                .build();
+
+        invalidatedTokenRepository.save(invalidatedToken);
+
+        var username = signedJWT.getJWTClaimsSet().getSubject();//lấy username
+
+        var user = userRepository.findByUsername(username).orElseThrow(
+                () -> new AppException(ErrorCode.UNAUTHENTICATED)
+        );
+
+        var token = generateToken(user);//tạo token mới cho user đó
+
+        return AuthenticationResponse.builder()
+                .token(token)
+                .authenticated(true)
+                .build();
+    }
+
+
     private String generateToken(User user) { // tao JWT
         JWSHeader jwsHeader = new JWSHeader(JWSAlgorithm.HS512);//header
 
@@ -88,6 +146,7 @@ public class AuthenticationService {
                                 Instant.now().plus(1, ChronoUnit.HOURS).toEpochMilli() //exp 1 gio
                         )
                 )
+                .jwtID(UUID.randomUUID().toString())//tạo id cho jwt
                 .claim("scope",buildScope(user))
                 .build();
 
@@ -102,6 +161,25 @@ public class AuthenticationService {
             log.error("Can not create token");
             throw new RuntimeException(e);
         }
+    }
+
+    private SignedJWT verifyToken(String token) throws JOSEException, ParseException {
+        JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
+
+        SignedJWT signedJWT = SignedJWT.parse(token);//parse token tu request
+
+        Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+
+        var verified = signedJWT.verify(verifier);//dung chu ky jwt de verify, trả về bool kiem tra verify
+
+        if (!(verified && expiryTime.after(new Date())))
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+
+        if (invalidatedTokenRepository
+                .existsById(signedJWT.getJWTClaimsSet().getJWTID()))//nếu token đã invalid thì ra lỗi
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+
+        return signedJWT;
     }
 
     private String buildScope(User user) {// tao claim scope khi dang nhap
