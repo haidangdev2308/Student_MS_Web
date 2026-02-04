@@ -47,6 +47,14 @@ public class AuthenticationService {
     @Value("${jwt.signerKey}") // đọc từ file config yaml
     protected String SIGNER_KEY;
 
+    @NonFinal
+    @Value("${jwt.valid-duration}")
+    protected long VALID_DURATION;
+
+    @NonFinal
+    @Value("${jwt.refreshable-duration}")
+    protected long REFRESHABLE_DURATION;
+
     //verify jwt
     public IntrospectResponse introspect(IntrospectRequest request) throws JOSEException, ParseException {
         var token = request.getToken();
@@ -61,7 +69,7 @@ public class AuthenticationService {
         var verified = signedJWT.verify(jwsVerifier);//dung chu ky jwt de verify, trả về bool kiem tra verify
 
         try {
-            verifyToken(token);
+            verifyToken(token, false);
         } catch (AppException e) {
             isValid = false;
         }
@@ -74,10 +82,10 @@ public class AuthenticationService {
     public AuthenticationResponse authenticate(AuthenticationRequest request) { // method xac thuc
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10); //ma hoa bcript
         var user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(()-> new AppException(ErrorCode.USER_NOT_EXISTED));// tim user xem co khop voi username vua nhap khong
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));// tim user xem co khop voi username vua nhap khong
 
         boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());//so pw tu request voi pw cua user vua tim duoc
-        if(!authenticated) {
+        if (!authenticated) {
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
 
@@ -91,22 +99,26 @@ public class AuthenticationService {
 
     public void logout(LogoutRequest request)
             throws ParseException, JOSEException {//request la 1 token
-        var signToken = verifyToken(request.getToken());
+        try {
+            var signToken = verifyToken(request.getToken(), true);//nếu còn trong tg refresh th vẫn cho dô ds invalidatedToken như bth
 
-        String jit = signToken.getJWTClaimsSet().getJWTID();
-        Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
+            String jit = signToken.getJWTClaimsSet().getJWTID();
+            Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
 
-        InvalidatedToken invalidatedToken = InvalidatedToken.builder()
-                .id(jit)
-                .expiryTime(expiryTime)
-                .build();
+            InvalidatedToken invalidatedToken = InvalidatedToken.builder()
+                    .id(jit)
+                    .expiryTime(expiryTime)
+                    .build();
 
-        invalidatedTokenRepository.save(invalidatedToken);
+            invalidatedTokenRepository.save(invalidatedToken);
+        } catch (AppException exception) {
+            log.info("Token already expired");
+        }
     }
 
     public AuthenticationResponse refreshToken(RefreshRequest request)
             throws ParseException, JOSEException {
-        var signedJWT = verifyToken(request.getToken());
+        var signedJWT = verifyToken(request.getToken(), true);
 
         //verify ok thì cấp token mới
         var jit = signedJWT.getJWTClaimsSet().getJWTID();
@@ -141,18 +153,16 @@ public class AuthenticationService {
                 .subject(user.getUsername())
                 .issuer("studentMSWeb.com")
                 .issueTime(new Date())//luc tao
-                .expirationTime(
-                        new Date(
-                                Instant.now().plus(1, ChronoUnit.HOURS).toEpochMilli() //exp 1 gio
-                        )
-                )
+                .expirationTime(new Date(
+                        Instant.now().plus(VALID_DURATION, ChronoUnit.SECONDS).toEpochMilli() //expire 1 h
+                ))
                 .jwtID(UUID.randomUUID().toString())//tạo id cho jwt
-                .claim("scope",buildScope(user))
+                .claim("scope", buildScope(user))
                 .build();
 
         Payload payload = new Payload(jwtClaimsSet.toJSONObject()); //payload nhan json obj
 
-        JWSObject jwsObject = new JWSObject(jwsHeader,payload);
+        JWSObject jwsObject = new JWSObject(jwsHeader, payload);
 
         try {
             jwsObject.sign(new MACSigner(SIGNER_KEY.getBytes())); //thuat toan ky: khoa ky vaf khoa giai ma trung nhau
@@ -163,12 +173,15 @@ public class AuthenticationService {
         }
     }
 
-    private SignedJWT verifyToken(String token) throws JOSEException, ParseException {
+    private SignedJWT verifyToken(String token, boolean isRefresh) throws JOSEException, ParseException {
         JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
 
         SignedJWT signedJWT = SignedJWT.parse(token);//parse token tu request
 
-        Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+        Date expiryTime = (isRefresh)//true thì dùng để refresh
+                ? new Date(signedJWT.getJWTClaimsSet().getIssueTime()//thời gian issue cộng với thời gian refresh = thời gian hết hạn refresh
+                .toInstant().plus(REFRESHABLE_DURATION, ChronoUnit.SECONDS).toEpochMilli())
+                : signedJWT.getJWTClaimsSet().getExpirationTime();
 
         var verified = signedJWT.verify(verifier);//dung chu ky jwt de verify, trả về bool kiem tra verify
 
