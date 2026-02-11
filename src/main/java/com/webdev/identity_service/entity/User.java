@@ -23,6 +23,7 @@ public class User
     String password;
     String firstName;
     String lastName;
+    String email;
     LocalDate dob;
 
     @ManyToMany //qqh nhiều nhiều với role

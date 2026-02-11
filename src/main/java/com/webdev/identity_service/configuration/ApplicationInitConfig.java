@@ -2,12 +2,12 @@ package com.webdev.identity_service.configuration;
 
 import com.webdev.identity_service.entity.User;
 import com.webdev.identity_service.enums.Role;
+import com.webdev.identity_service.repository.RoleRepository;
 import com.webdev.identity_service.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,32 +15,39 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.HashSet;
 
-//tạo user admin mỗi khi start application này lên
-@Configuration // 1. Báo hiệu Class này là nơi chứa các lệnh tạo Bean
-@RequiredArgsConstructor //khai bao bean khong can autowire
+@Configuration
+@RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@Slf4j // inject log
+@Slf4j
 public class ApplicationInitConfig {
 
     PasswordEncoder passwordEncoder;
 
-    //được khởi chạy moi khi application được start
-    // 2. Spring nhìn thấy @Bean -> Nó sẽ chạy hàm này NGAY LẬP TỨC khi khởi động
     @Bean
-    ApplicationRunner applicationRunner(UserRepository userRepository) {
+    ApplicationRunner applicationRunner(UserRepository userRepository, RoleRepository roleRepository) {
         return args -> {
-            if(userRepository.findByUsername("admin").isEmpty()) {//start ma chua co user admin thi moi tao admin
-                var roles = new HashSet<String>();
-                roles.add(Role.ADMIN.name());
+            // 1. Đảm bảo Role ADMIN tồn tại
+            var adminRole = roleRepository.findById(Role.ADMIN.name()).orElseGet(() -> {
+                var newRole = com.webdev.identity_service.entity.Role.builder()
+                        .name(Role.ADMIN.name())
+                        .description("Admin role")
+                        .build();
+                return roleRepository.save(newRole);
+            });
+
+            // 2. Tạo User admin nếu chưa có
+            if (userRepository.findByUsername("admin").isEmpty()) {
+                var roles = new HashSet<com.webdev.identity_service.entity.Role>();
+                roles.add(adminRole);
+
                 User user = User.builder()
                         .username("admin")
-//                        .roles(roles)
                         .password(passwordEncoder.encode("admin"))
+                        .roles(roles)
                         .build();
 
                 userRepository.save(user);
-
-                log.warn("user admin has been created with default password: admin, please change it!");
+                log.warn("User 'admin' has been created with default password: 'admin'. Please change it!");
             }
         };
     }

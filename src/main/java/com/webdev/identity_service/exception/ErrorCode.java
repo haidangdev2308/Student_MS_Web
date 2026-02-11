@@ -17,6 +17,8 @@ public enum ErrorCode {
     UNAUTHENTICATED(1006, "Unauthenticated", HttpStatus.UNAUTHORIZED),//401
     UNAUTHORIZED(1007, "You do not have permission", HttpStatus.FORBIDDEN),//403
     INVALID_DOB(1008, "Your age must be at least {min}", HttpStatus.BAD_REQUEST),
+    INVALID_EMAIL(1009, "Email is invalid", HttpStatus.BAD_REQUEST),
+    STUDENT_CODE_EXISTED(1010, "Student code existed", HttpStatus.BAD_REQUEST),
     ;
 
     //khai tao bien ban dau

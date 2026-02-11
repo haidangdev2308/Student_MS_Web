@@ -48,9 +48,18 @@ public class UserService {
         User user = userMapper.toUser(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));//encode pw user nhap
 
-        HashSet<String> roles = new HashSet<>();
-        roles.add(Role.USER.name()); // khi tao user moi se co them 1 list role, mac dinh co role USER
-//        user.setRoles(roles);
+        HashSet<com.webdev.identity_service.entity.Role> roles = new HashSet<>();
+        
+        // Tìm role STUDENT, nếu không có thì tạo mới
+        var studentRole = roleRepository.findById(Role.STUDENT.name()).orElse(
+                roleRepository.save(com.webdev.identity_service.entity.Role.builder()
+                        .name(Role.STUDENT.name())
+                        .description("Student role")
+                        .build())
+        );
+        roles.add(studentRole);
+        
+        user.setRoles(roles);
 
         return userMapper.toUserResponse(userRepository.save(user)); //tạo 1 row trong bảng user ở database
     }

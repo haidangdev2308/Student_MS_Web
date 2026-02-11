@@ -16,6 +16,7 @@ public class UserResponse { // dto response từ service trả về controller
     String username;
     String firstName;
     String lastName;
+    String email;
     LocalDate dob;
     Set<RoleResponse> roles;//Set đảm bảo mỗi pt là unit, khác List
 }
